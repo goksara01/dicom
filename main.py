@@ -1,5 +1,5 @@
 from flask import Flask, render_template, jsonify, Response
-import orthanc_clients, orthanc_studies, orthanc_instances
+import orthanc_clients, orthanc_studies, orthanc_instances, dicom
 
 app = Flask(__name__)
 
@@ -48,6 +48,26 @@ def get_instance(instance_id):
     try:
         data = orthanc_instances.get_instance(instance_id)
         return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/instances/<instance_id>/file')
+def get_instance_file(instance_id):
+    try:
+        data = orthanc_instances.get_instance_file(instance_id)
+        #print(data)
+        #del data[0x10, 0x10]
+        return jsonify(str(data))
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+@app.route('/instances/<instance_id>/deidentify')
+def get_deidentified_file(instance_id):
+    try:
+        data = orthanc_instances.create_deidentified_instance(instance_id)
+        print(data)
+        #del data[0x10, 0x10]
+        return jsonify(str(data))
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
