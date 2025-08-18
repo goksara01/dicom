@@ -28,16 +28,25 @@ def deidentify(bytes):
     dicom_file = BytesIO(bytes)
     original_ds = pydicom.dcmread(dicom_file)
 
-    patient_name = original_ds[0x0010, 0x0010].value
-    patient_id   = original_ds[0x0010, 0x0020].value
+    patient_name     = original_ds[0x0010, 0x0010].value
+    patient_id       = original_ds[0x0010, 0x0020].value
+    patient_age      = original_ds[0x0010, 0x1010].value
+    patient_birthday = original_ds[0x0010, 0x0030].value
+    patient_weight   = original_ds[0x0010, 0x1030].value
 
-    original_ds.PatientName = "John^Doe"
-    original_ds.PatientID   = ""
+    original_ds.PatientName        = "John^Doe"
+    original_ds.PatientID          = ""
+    del original_ds.PatientAge
+    del original_ds.PatientWeight
+    original_ds.PatientBirthDate   = ""
 
     buffer = DicomBytesIO()
     encrypted_attrs_ds = Dataset()
-    encrypted_attrs_ds.PatientName = patient_name
-    encrypted_attrs_ds.PatientID   = patient_id
+    encrypted_attrs_ds.PatientName      = patient_name
+    encrypted_attrs_ds.PatientID        = patient_id
+    encrypted_attrs_ds.PatientAge       = patient_age
+    encrypted_attrs_ds.PatientBirthDate = patient_birthday
+    encrypted_attrs_ds.PatientWeight    = patient_weight
     encrypted_attrs_ds.is_little_endian = True
     encrypted_attrs_ds.is_implicit_VR = False
     encrypted_attrs_ds.save_as(buffer)
