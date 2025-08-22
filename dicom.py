@@ -28,22 +28,46 @@ def deidentify(bytes):
     dicom_file = BytesIO(bytes)
     original_ds = pydicom.dcmread(dicom_file)
 
-    patient_name     = original_ds[0x0010, 0x0010].value
-    patient_id       = original_ds[0x0010, 0x0020].value
-    patient_age      = original_ds[0x0010, 0x1010].value
-    patient_birthday = original_ds[0x0010, 0x0030].value
-    patient_weight   = original_ds[0x0010, 0x1030].value
+    patient_name         = original_ds[0x0010, 0x0010].value
+    patient_id           = original_ds[0x0010, 0x0020].value
+    patient_age          = original_ds[0x0010, 0x1010].value
+    patient_birthday     = original_ds[0x0010, 0x0030].value
+    patient_weight       = original_ds[0x0010, 0x1030].value
+    patient_sex          = original_ds[0x0010, 0x0040].value
+    study_instance_UID   = original_ds[0x0020, 0x000D].value
+    series_instance_UID  = original_ds[0x0020, 0x000E].value
+    institution_address  = original_ds[0x0008, 0x0081].value
+    institution_name     = original_ds[0x0008, 0x0080].value
+    institution_dep_name = original_ds[0x0008, 0x1040].value
+    station_name         = original_ds[0x0008, 0x1010].value
+    study_description    = original_ds[0x0008, 0x1030].value
+    series_description   = original_ds[0x0008, 0x103E].value
+    physician_name       = original_ds[0x0008, 0x1050].value
+    inst_creation_date   = original_ds[0x0008, 0x0012].value
+    inst_creation_time   = original_ds[0x0008, 0x0013].value
 
-    original_ds.PatientName        = "John^Doe"
-    original_ds.PatientID          = ""
+    original_ds.PatientSex          = ""
+    original_ds.PatientName         = "John^Doe"
+    original_ds.PatientID           = ""
+    original_ds.PatientBirthDate    = ""
     del original_ds.PatientAge
+    del original_ds.StationName
     del original_ds.PatientWeight
-    original_ds.PatientBirthDate   = ""
+    del original_ds.InstitutionName
+    del original_ds.StudyDescription
+    del original_ds.SeriesDescription
+    del original_ds.InstitutionAddress
+    del original_ds.InstanceCreationTime
+    del original_ds.InstanceCreationDate
+    del original_ds.PerformingPhysicianName
+    del original_ds.InstitutionalDepartmentName
+    original_ds.add_new((0x0012, 0x0062), 'CS', "YES")
 
     buffer = DicomBytesIO()
     encrypted_attrs_ds = Dataset()
     encrypted_attrs_ds.PatientName      = patient_name
     encrypted_attrs_ds.PatientID        = patient_id
+    encrypted_attrs_ds.PatientSex       = patient_sex
     encrypted_attrs_ds.PatientAge       = patient_age
     encrypted_attrs_ds.PatientBirthDate = patient_birthday
     encrypted_attrs_ds.PatientWeight    = patient_weight
@@ -56,7 +80,26 @@ def deidentify(bytes):
     item0.add_new((0x0400, 0x0510), 'UI', ExplicitVRLittleEndian)
     item0.add_new((0x0400, 0x0520), 'OB', ciphertext)
 
-    original_ds.add_new((0x0400, 0x0500), 'SQ', [item0])
+    encrypted_attrs_ds.clear()
+    encrypted_attrs_ds.StationName                 = station_name   
+    encrypted_attrs_ds.InstitutionName             = institution_name
+    encrypted_attrs_ds.StudyDescription            = study_description
+    encrypted_attrs_ds.SeriesDescription           = series_description
+    encrypted_attrs_ds.InstitutionAddress          = institution_address
+    encrypted_attrs_ds.InstanceCreationTime        = inst_creation_time
+    encrypted_attrs_ds.InstanceCreationDate        = inst_creation_date
+    encrypted_attrs_ds.PerformingPhysicianName     = physician_name
+    encrypted_attrs_ds.InstitutionalDepartmentName = institution_dep_name
+    encrypted_attrs_ds.is_little_endian = True
+    encrypted_attrs_ds.is_implicit_VR = False
+    encrypted_attrs_ds.save_as(buffer)
+    ciphertext = aes256(buffer.getvalue())
+
+    item1 = Dataset()
+    item1.add_new((0x0400, 0x0510), 'UI', ExplicitVRLittleEndian)
+    item1.add_new((0x0400, 0x0520), 'OB', ciphertext)
+
+    original_ds.add_new((0x0400, 0x0500), 'SQ', [item0, item1])
     
     original_ds.file_meta.MediaStorageSOPClassUID = original_ds.SOPClassUID if "SOPClassUID" in original_ds else generate_uid()
     original_ds.file_meta.MediaStorageSOPInstanceUID = original_ds.SOPInstanceUID if "SOPInstanceUID" in original_ds else generate_uid()

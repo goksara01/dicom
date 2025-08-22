@@ -1,6 +1,8 @@
 # DICOM Attribute Confidentiality Profiles Implementacija
 
 &nbsp;&nbsp;&nbsp;&nbsp;Ideja projekta jeste implementacija jednog (za sada) bezbednosnog profila definisanog u "__DICOM PS3.15 2025c - Security and System
-Management Profiles__", konkretno Attribute Confidentiality profila. Ovaj profil, kao i većina ostalih u ovom poglavlju, ima za cilj očuvanje ključnih činioca informacione bezbednosti: integritetu, tajnosti i pouzdanosti podataka. Ovo pogotovo važi kada su u pitanju medicinski podaci, CT slike, MRI skenovi i slično.
+Management Profiles__", konkretno Attribute Confidentiality profila koji se odnosi na očuvanje tajnosti podataka na aplikativnom nivou. Ovaj profil, kao i većina ostalih u ovom poglavlju, ima za cilj očuvanje ključnih činioca informacione bezbednosti: integritetu, tajnosti i pouzdanosti podataka. Ovo pogotovo važi kada su u pitanju medicinski podaci, CT slike, MRI skenovi i slično.
 
 &nbsp;&nbsp;&nbsp;&nbsp;Projekat je započeo dizanjem 2 Docker kontejnera. Na jednom je podignut portainer (__portainer/portainer-ce__) za lakšu konfiguraciju postojećih kontejnera (i ukoliko se pojavi potreba za još jednim izolovanim sistemom), a na drugom __urosss/orthanc__, kontejner na kojem je podignuta verzija Orthanc DICOMweb servera kompatibilna sa ARM arhitekturama.
+
+&nbsp;&nbsp;&nbsp;&nbsp;__iApplication Level Confidentiality profil__ ima za cilj kreiranje nove, de-identifikovane verzje već postojećeg seta podataka i ne služi da na bilo koji način zameni originalan set. Ovakav set podataka može biti koristan prilikom pisanja stručnih ili naučnih radova, kao vodič kroz neke kliničke vežbe ili kod čuvanja medicinskih podataka u registrima/bazama koje zahtevaju da podaci budu na neki način zaštićeni. Implementirana aplikacija može da tvrdi usklađenost sa ovim bezbednosnim profilom ako štiti i zadržava *sve* atribute navedene u sekciji "__Profiles and Options__".
