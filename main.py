@@ -1,7 +1,8 @@
-from flask import Flask, render_template, jsonify, Response
+from flask import Flask, flash, redirect, render_template, jsonify, Response, request, session, url_for
 import orthanc_clients, orthanc_studies, orthanc_instances, dicom
 
 app = Flask(__name__)
+app.secret_key = 'b0f1b6f71c2f9f4e6a7da38b1c6b4c2b37c47b7801540b869d6c3fbdc2b490b9'
 
 @app.route('/patients')
 def list_patients():
@@ -55,8 +56,6 @@ def get_instance(instance_id):
 def get_instance_file(instance_id):
     try:
         data = orthanc_instances.get_instance_file(instance_id)
-        #print(data)
-        #del data[0x10, 0x10]
         return jsonify(str(data))
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -65,8 +64,16 @@ def get_instance_file(instance_id):
 def get_deidentified_file(instance_id):
     try:
         data = orthanc_instances.create_deidentified_instance(instance_id)
-        print(data)
-        #del data[0x10, 0x10]
+        #print(data)
+        return jsonify(str(data))
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/instances/<instance_id>/reidentify')
+def get_reidentified_file(instance_id):
+    try:
+        data = orthanc_instances.create_reidentified_instance(instance_id)
+        #print(data)
         return jsonify(str(data))
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -78,6 +85,22 @@ def get_preview(instance_id):
         return Response(data, mimetype="image/jpeg")
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+    
+        if orthanc_instances.authenticate(username=username, password=password):
+            session['logged_in'] = True
+            session['username']  = username
+            session['password']  = password
+            return redirect(url_for('home'))
+        else:
+            flash('Invalid username or password', 'error')
+ 
+    return render_template('login.html')
 
 @app.route("/")
 def home():

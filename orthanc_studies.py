@@ -1,8 +1,8 @@
 import requests
 
 ORTHANC_URL = "http://130.61.173.177:8042"
-ORTHANC_USERNAME = "orthanc"
-ORTHANC_PASSWORD = "orthanc"
+ORTHANC_USERNAME = "admin"
+ORTHANC_PASSWORD = "admin"
 
 auth = (ORTHANC_USERNAME, ORTHANC_PASSWORD)
 

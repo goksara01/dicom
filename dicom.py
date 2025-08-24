@@ -24,6 +24,16 @@ def aes256(plain_bytes):
 
     return ciphertext
 
+def decrypt_aes256(cipher_bytes):
+    cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
+    decryptor = cipher.decryptor()
+    padded_plaintext = decryptor.update(cipher_bytes) + decryptor.finalize()
+
+    unpadder = padding.PKCS7(128).unpadder()
+    plaintext = unpadder.update(padded_plaintext) + unpadder.finalize()
+
+    return plaintext
+
 def deidentify(bytes):
     dicom_file = BytesIO(bytes)
     original_ds = pydicom.dcmread(dicom_file)
@@ -45,14 +55,22 @@ def deidentify(bytes):
     physician_name       = original_ds[0x0008, 0x1050].value
     inst_creation_date   = original_ds[0x0008, 0x0012].value
     inst_creation_time   = original_ds[0x0008, 0x0013].value
+    study_time           = original_ds[0x0008, 0x0030].value
+    series_time          = original_ds[0x0008, 0x0031].value
+    acquisition_time     = original_ds[0x0008, 0x0032].value
+    content_time         = original_ds[0x0008, 0x0033].value
 
     original_ds.PatientSex          = ""
     original_ds.PatientName         = "John^Doe"
     original_ds.PatientID           = ""
     original_ds.PatientBirthDate    = ""
+    original_ds.StudyTime           = ""
+    original_ds.ContentTime         = ""
+    del original_ds.SeriesTime
     del original_ds.PatientAge
     del original_ds.StationName
     del original_ds.PatientWeight
+    del original_ds.AcquisitionTime
     del original_ds.InstitutionName
     del original_ds.StudyDescription
     del original_ds.SeriesDescription
@@ -62,6 +80,7 @@ def deidentify(bytes):
     del original_ds.PerformingPhysicianName
     del original_ds.InstitutionalDepartmentName
     original_ds.add_new((0x0012, 0x0062), 'CS', "YES")
+    original_ds.add_new((0x0012, 0x0063), 'LO', "Per DICOM PS 3.15 AnnexE. Details in 0012,0064")
 
     buffer = DicomBytesIO()
     encrypted_attrs_ds = Dataset()
@@ -71,6 +90,10 @@ def deidentify(bytes):
     encrypted_attrs_ds.PatientAge       = patient_age
     encrypted_attrs_ds.PatientBirthDate = patient_birthday
     encrypted_attrs_ds.PatientWeight    = patient_weight
+    encrypted_attrs_ds.StudyTime        = study_time
+    encrypted_attrs_ds.SeriesTime       = series_time
+    encrypted_attrs_ds.AcquisitionTime  = acquisition_time
+    encrypted_attrs_ds.ContentTime      = content_time
     encrypted_attrs_ds.is_little_endian = True
     encrypted_attrs_ds.is_implicit_VR = False
     encrypted_attrs_ds.save_as(buffer)
@@ -101,9 +124,9 @@ def deidentify(bytes):
 
     original_ds.add_new((0x0400, 0x0500), 'SQ', [item0, item1])
     
-    original_ds.file_meta.MediaStorageSOPClassUID = original_ds.SOPClassUID if "SOPClassUID" in original_ds else generate_uid()
+    original_ds.file_meta.MediaStorageSOPClassUID    = original_ds.SOPClassUID if "SOPClassUID" in original_ds else generate_uid()
     original_ds.file_meta.MediaStorageSOPInstanceUID = original_ds.SOPInstanceUID if "SOPInstanceUID" in original_ds else generate_uid()
-    original_ds.file_meta.TransferSyntaxUID = ExplicitVRLittleEndian
+    original_ds.file_meta.TransferSyntaxUID          = ExplicitVRLittleEndian
     original_ds.file_meta.ImplementationClassUID = generate_uid()
     original_ds.is_little_endian = True
     original_ds.is_implicit_VR   = False
@@ -111,3 +134,27 @@ def deidentify(bytes):
     original_ds.save_as("dicom_files/deidentified_file.dcm", write_like_original=False)
 
     return original_ds 
+
+def reidentify(bytes):
+    dicom_file = BytesIO(bytes)
+    deidentified_ds = pydicom.dcmread(dicom_file)
+
+    if deidentified_ds[0x0012, 0x0062].value == "YES":
+        encrypted_attr_seq = deidentified_ds[0x0400, 0x0500]
+        for attribute in encrypted_attr_seq:
+            encrypted_content = attribute[0x0400, 0x0520].value
+            plain_content     = pydicom.dcmread(BytesIO(decrypt_aes256(encrypted_content)), force=True)
+            for entry in plain_content:
+                if entry.tag in deidentified_ds:
+                    deidentified_ds[entry.tag].value = entry.value
+                else:
+                    deidentified_ds.add_new(entry.tag, entry.VR, entry.value)
+
+        del deidentified_ds[0x0400, 0x0500]
+        deidentified_ds[0x0012, 0x0062].value = "NO"
+
+        deidentified_ds.save_as("dicom_files/reidentified_file.dcm", write_like_original=False)
+
+        return deidentified_ds
+    else:
+        return deidentified_ds
