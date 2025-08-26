@@ -64,7 +64,7 @@ def get_instance_file(instance_id):
 def get_deidentified_file(instance_id):
     try:
         data = orthanc_instances.create_deidentified_instance(instance_id)
-        #print(data)
+        print(data)
         return jsonify(str(data))
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -86,6 +86,15 @@ def get_preview(instance_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/instances/<instance_id>/secure')
+def get_secure(instance_id):
+    try:
+        data = orthanc_instances.create_secure_DICOM_enveloped(instance_id)
+        #print(data)
+        return jsonify({'status': "success"}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -98,12 +107,16 @@ def login():
             session['password']  = password
             return redirect(url_for('home'))
         else:
+            session['logged_in'] = False
             flash('Invalid username or password', 'error')
- 
+    
     return render_template('login.html')
 
 @app.route("/")
 def home():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    
     return render_template("index.html")
 
 if __name__ == "__main__":

@@ -1,12 +1,24 @@
+import asn1crypto
 import pydicom
 from io import BytesIO
+from cryptography import x509
 from pydicom.dataset import Dataset
 from pydicom.filebase import DicomBytesIO
-from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.backends import default_backend
+from asn1crypto import cms, algos, core, x509 as asn1_x509
 from pydicom.uid import ExplicitVRLittleEndian, generate_uid
+from cryptography.hazmat.primitives import padding, hashes, serialization
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
+from cryptography.hazmat.primitives.asymmetric import rsa
 
+# 1. A content-encryption key is generated at random. Since this is not a production environment, a static 256-bit key is used here.
+# 2. Then, the content-encryption key shall be encrypted for each recipient. Again, it is assumed there is only one recipient.
+#   2.1 Since this is not a production environment, a randomly generated private-public key pair shall be generated for each CMS blob.
+#   2.2 The encryption of the content-encryption key shall be done using the generated public key. This way, only the recipient can decrypt it using its private key.
+# 3. 
+
+# Used to encrypt the content
 key = bytes.fromhex('8ef72dd8c7e59683829f1a8a09febc6ee87bdfb300e3c18b90f320f8470c0d8a')
 iv  = bytes.fromhex('3c0dccb453c688c901fc9e343f21acdb')
 
@@ -33,6 +45,81 @@ def decrypt_aes256(cipher_bytes):
     plaintext = unpadder.update(padded_plaintext) + unpadder.finalize()
 
     return plaintext
+
+def secure_enveloped_data(bytes):
+    dicom_file = BytesIO(bytes)
+    ds         = pydicom.dcmread(dicom_file)
+
+    with open("encryption_keys/certificate.pem", "rb") as f:
+        cert = x509.load_pem_x509_certificate(f.read(), backend=default_backend())
+
+    public_key = cert.public_key()
+    asn1_cert = asn1_x509.Certificate.load(cert.public_bytes(serialization.Encoding.DER))
+
+    buffer = DicomBytesIO()
+    ds.save_as(buffer)
+    ciphertext = aes256(buffer.getvalue())
+
+    encrypted_key = public_key.encrypt(
+    key,
+    asym_padding.OAEP(
+        mgf=asym_padding.MGF1(algorithm=hashes.SHA256()),
+        algorithm=hashes.SHA256(),
+        label=None
+        )
+    )
+
+    rid = cms.IssuerAndSerialNumber({
+        'issuer' : asn1_cert.issuer,
+        'serial_number' : asn1_cert.serial_number
+    })
+
+    oaep_params = algos.RSAESOAEPParams({
+        'hash_algorithm': algos.DigestAlgorithm({'algorithm': 'sha256'}),
+        'mask_gen_algorithm': algos.MaskGenAlgorithm({
+            'algorithm': 'mgf1',
+            'parameters': algos.DigestAlgorithm({'algorithm': 'sha256'})
+        }),
+        'p_source_algorithm': algos.PSourceAlgorithm({
+            'algorithm': 'p_specified',
+            'parameters': core.OctetString(b'')
+        })
+    })
+
+    recipient_info = cms.RecipientInfo(name='ktri', value={
+        'version': 0,
+        'rid': rid,
+        'key_encryption_algorithm': asn1crypto.cms.KeyEncryptionAlgorithm({
+            'algorithm': 'rsaes_oaep',
+            'parameters': oaep_params
+        }),
+        'encrypted_key': encrypted_key
+    })
+
+    encrypted_content_info = cms.EncryptedContentInfo({
+        'content_type': 'data',
+        'content_encryption_algorithm': algos.EncryptionAlgorithm({
+            'algorithm': 'aes256_cbc',
+            'parameters': core.OctetString(iv)
+        }),
+        'encrypted_content': core.OctetString(ciphertext)
+    })
+
+    enveloped_data = cms.EnvelopedData({
+        'version': 0,
+        'recipient_infos': [recipient_info],
+        'encrypted_content_info': encrypted_content_info
+    })
+
+    cms_obj = cms.ContentInfo({
+        'content_type': 'enveloped_data',
+        'content': enveloped_data
+    })
+
+    with open("secure_DICOM/secure_output.p7m", "wb") as f:
+        f.write(cms_obj.dump())    
+
+    return cms_obj
 
 def deidentify(bytes):
     dicom_file = BytesIO(bytes)
