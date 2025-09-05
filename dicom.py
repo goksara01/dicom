@@ -46,6 +46,51 @@ def decrypt_aes256(cipher_bytes):
 
     return plaintext
 
+def base_RSA_signature(bytes):
+    ds = read_file(bytes)
+    signed_ds, buffer  = Dataset(), DicomBytesIO()
+
+    signed_ds.add_new((0x0010, 0x0010), "PN", ds[0x0010, 0x0010].value)
+    signed_ds.add_new((0x0010, 0x0020), "LO", ds[0x0010, 0x0020].value)
+    signed_ds.add_new((0x0010, 0x1010), "AS", ds[0x0010, 0x1010].value)
+
+    signed_ds.is_little_endian = True
+    signed_ds.is_implicit_VR = False
+
+    signed_ds.save_as(buffer)
+
+    with open("encryption_keys/private_key.pem", "rb") as f:
+        private_key = serialization.load_pem_private_key(
+            f.read(),
+            password=None,
+            backend=default_backend()
+        )
+
+    signature = private_key.sign(
+        buffer.getvalue(),
+        asym_padding.PKCS1v15(),
+        hashes.SHA256()
+    )
+
+    with open("encryption_keys/certificate.pem", "rb") as f:
+        cert     = x509.load_pem_x509_certificate(f.read(), backend=default_backend())
+        cert_der = cert.public_bytes(serialization.Encoding.DER)
+
+    signed_tags = [pydicom.tag.Tag(0x00100010), pydicom.tag.Tag(0x00100020), pydicom.tag.Tag(0x00101010)]
+
+    digital_sig_seq = Dataset()
+    digital_sig_seq.add_new((0x0400, 0x0015), "CS", "SHA256")
+    digital_sig_seq.add_new((0x0400, 0x0110), "CS", "X509_1993_SIG")
+    digital_sig_seq.add_new((0x0400, 0x0115), "OB", cert_der)
+    digital_sig_seq.add_new((0x0400, 0x0120), "OB", signature)
+    digital_sig_seq.add_new((0x0400, 0x0020), "AT", signed_tags)
+
+    ds.add_new((0xFFFA, 0xFFFA), "SQ", pydicom.Sequence([digital_sig_seq]))
+
+    ds.save_as("signed_DICOM/" + ds[0x0008, 0x0018].value + ".dcm", write_like_original=False)
+
+    return ds
+
 def secure_enveloped_data(bytes):
     dicom_file = BytesIO(bytes)
     ds         = pydicom.dcmread(dicom_file)
@@ -245,3 +290,5 @@ def reidentify(bytes):
         return deidentified_ds
     else:
         return deidentified_ds
+
+    
