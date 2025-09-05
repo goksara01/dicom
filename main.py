@@ -104,6 +104,15 @@ def get_rsa_signature(instance_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500    
 
+@app.route('/instances/<instance_id>/creator-rsa-signature')
+def get_creator_rsa_signature(instance_id):
+    try:
+        data = orthanc_instances.create_creator_RSA_digital_signature(instance_id)
+        print(data)
+        return jsonify({'status': "success"}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500  
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':

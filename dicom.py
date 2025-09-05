@@ -36,6 +36,16 @@ def aes256(plain_bytes):
 
     return ciphertext
 
+def triple_des(plain_bytes):
+    padder = padding.PKCS7(128).padder()
+    padded_data = padder.update(plain_bytes) + padder.finalize()
+
+    cipher = Cipher(algorithms.TripleDES(key), modes.CBC(iv), backend=default_backend())
+    encryptor = cipher.encryptor()
+    ciphertext = encryptor.update(padded_data) + encryptor.finalize()
+
+    return ciphertext
+
 def decrypt_aes256(cipher_bytes):
     cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
     decryptor = cipher.decryptor()
@@ -45,6 +55,90 @@ def decrypt_aes256(cipher_bytes):
     plaintext = unpadder.update(padded_plaintext) + unpadder.finalize()
 
     return plaintext
+
+def creator_RSA_signature(bytes):
+    ds = read_file(bytes)
+    signed_ds, buffer  = Dataset(), DicomBytesIO()
+
+    signed_ds.add_new((0x0008, 0x0016), "UI", ds[0x0008, 0x0016].value) # SOP Class UID 
+    signed_ds.add_new((0x0008, 0x0018), "UI", ds[0x0008, 0x0018].value) # SOP Instance UID
+    signed_ds.add_new((0x0020, 0x000D), "UI", ds[0x0020, 0x000D].value) # Study Instance UID
+    signed_ds.add_new((0x0020, 0x000E), "UI", ds[0x0020, 0x000E].value) # Series Instance UID
+    if (0x0008, 0x0070) in ds: signed_ds.add_new((0x0008, 0x0070), "LO", ds[0x0008, 0x0070].value) # Manufacturer
+    if (0x0008, 0x0080) in ds: signed_ds.add_new((0x0008, 0x0080), "LO", ds[0x0008, 0x0080].value) # Institution Name
+    if (0x0008, 0x0070) in ds: signed_ds.add_new((0x0008, 0x0081), "ST", ds[0x0008, 0x0081].value) # Institution Address
+    if (0x0008, 0x0081) in ds: signed_ds.add_new((0x0008, 0x1010), "SH", ds[0x0008, 0x1010].value) # Station Name
+    if (0x0008, 0x1040) in ds: signed_ds.add_new((0x0008, 0x1040), "LO", ds[0x0008, 0x1040].value) # Institutional Department Name
+    if (0x0008, 0x1090) in ds: signed_ds.add_new((0x0008, 0x1090), "LO", ds[0x0008, 0x1090].value) # Manufacturer's Model Name
+    if (0x0018, 0x1000) in ds: signed_ds.add_new((0x0018, 0x1000), "LO", ds[0x0018, 0x1000].value) # Device Serial Number
+    if (0x0018, 0x1002) in ds: signed_ds.add_new((0x0018, 0x1002), "UI", ds[0x0018, 0x1002].value) # Device UID
+    if (0x0018, 0x1008) in ds: signed_ds.add_new((0x0018, 0x1008), "LO", ds[0x0018, 0x1008].value) # Gantry UID
+    if (0x0018, 0x100B) in ds: signed_ds.add_new((0x0018, 0x100B), "UI", ds[0x0018, 0x100B].value) # Manufacturer's Device Class UID
+    if (0x0018, 0x1020) in ds: signed_ds.add_new((0x0018, 0x1020), "LO", ds[0x0018, 0x1020].value) # Software Versions
+    if (0x0018, 0x1050) in ds: signed_ds.add_new((0x0018, 0x1050), "DS", ds[0x0018, 0x1050].value) # Spatial Resolution
+    if (0x0018, 0x1200) in ds: signed_ds.add_new((0x0018, 0x1200), "DA", ds[0x0018, 0x1200].value) # Date of Last Calibration
+    if (0x0018, 0x1201) in ds: signed_ds.add_new((0x0018, 0x1201), "TM", ds[0x0018, 0x1201].value) # Time of Last Calibration
+    if (0x0018, 0x1204) in ds: signed_ds.add_new((0x0018, 0x1204), "DA", ds[0x0018, 0x1204].value) # Date of Manufacture
+    if (0x0018, 0x1205) in ds: signed_ds.add_new((0x0018, 0x1205), "TM", ds[0x0018, 0x1205].value) # Date of Installation
+    if (0x0008, 0x0008) in ds: signed_ds.add_new((0x0008, 0x0008), "CS", ds[0x0008, 0x0008].value) # Image Type
+    if (0x0008, 0x0023) in ds: signed_ds.add_new((0x0008, 0x0023), "DA", ds[0x0008, 0x0023].value) # Content Date
+    if (0x0008, 0x0022) in ds: signed_ds.add_new((0x0008, 0x0022), "DA", ds[0x0008, 0x0022].value) # Acquisition Date
+    if (0x0008, 0x002A) in ds: signed_ds.add_new((0x0008, 0x002A), "DT", ds[0x0008, 0x002A].value) # Acquisition DateTime
+    if (0x0008, 0x0033) in ds: signed_ds.add_new((0x0008, 0x0033), "TM", ds[0x0008, 0x0033].value) # Content Time
+    if (0x0070, 0x0080) in ds: signed_ds.add_new((0x0070, 0x0080), "CS", ds[0x0070, 0x0080].value) # Content Label
+    if (0x0070, 0x0081) in ds: signed_ds.add_new((0x0070, 0x0081), "LO", ds[0x0070, 0x0081].value) # Content Description
+    if (0x0008, 0x0013) in ds: signed_ds.add_new((0x0008, 0x0013), "IS", ds[0x0008, 0x0013].value) # Instance Number
+    if (0x0020, 0x0020) in ds: signed_ds.add_new((0x0020, 0x0020), "CS", ds[0x0020, 0x0020].value) # Patient Orientation
+    if (0x0020, 0x0062) in ds: signed_ds.add_new((0x0020, 0x0062), "CS", ds[0x0020, 0x0062].value) # Image Laterality
+    if (0x0020, 0x4000) in ds: signed_ds.add_new((0x0020, 0x4000), "LT", ds[0x0020, 0x4000].value) # Image Comments
+    if (0x0028, 0x0300) in ds: signed_ds.add_new((0x0028, 0x0300), "CS", ds[0x0028, 0x0300].value) # Quality Control Image
+    if (0x0028, 0x0301) in ds: signed_ds.add_new((0x0028, 0x0301), "CS", ds[0x0028, 0x0301].value) # Burned In Annotation
+    if (0x0028, 0x0302) in ds: signed_ds.add_new((0x0028, 0x0302), "CS", ds[0x0028, 0x0302].value) # Recognizable Visual Features
+    if (0x0028, 0x2110) in ds: signed_ds.add_new((0x0028, 0x2110), "CS", ds[0x0028, 0x2110].value) # Lossy Image Compression
+    if (0x0028, 0x2112) in ds: signed_ds.add_new((0x0028, 0x2112), "DS", ds[0x0028, 0x2112].value) # Lossy Image Compression Ratio
+    if (0x0028, 0x2114) in ds: signed_ds.add_new((0x0028, 0x2114), "CS", ds[0x0028, 0x2114].value) # Lossy Image Compression Method
+    if (0x0088, 0x0200) in ds: signed_ds.add_new((0x0088, 0x0200), "SQ", ds[0x0088, 0x0200].value) # Icon Image Sequence
+    if (0x003A, 0x0230) in ds: signed_ds.add_new((0x003A, 0x0230), "FL", ds[0x003A, 0x0230].value) # Waveform Data Display Scale
+    if (0x003A, 0x0231) in ds: signed_ds.add_new((0x003A, 0x0231), "FL", ds[0x003A, 0x0231].value) # Waveform Display Background CIELab Value
+
+    # ... #
+
+    signed_ds.is_little_endian = True
+    signed_ds.is_implicit_VR = False
+
+    signed_ds.save_as(buffer)
+
+    with open("encryption_keys/private_key.pem", "rb") as f:
+        private_key = serialization.load_pem_private_key(
+            f.read(),
+            password=None,
+            backend=default_backend()
+        )
+
+    signature = private_key.sign(
+        buffer.getvalue(),
+        asym_padding.PKCS1v15(),
+        hashes.SHA256()
+    )
+
+    with open("encryption_keys/certificate.pem", "rb") as f:
+        cert     = x509.load_pem_x509_certificate(f.read(), backend=default_backend())
+        cert_der = cert.public_bytes(serialization.Encoding.DER)
+
+    signed_tags = [pydicom.tag.Tag(0x00100010), pydicom.tag.Tag(0x00100020), pydicom.tag.Tag(0x00101010)]
+
+    digital_sig_seq = Dataset()
+    digital_sig_seq.add_new((0x0400, 0x0015), "CS", "SHA256")
+    digital_sig_seq.add_new((0x0400, 0x0110), "CS", "X509_1993_SIG")
+    digital_sig_seq.add_new((0x0400, 0x0115), "OB", cert_der)
+    digital_sig_seq.add_new((0x0400, 0x0120), "OB", signature)
+    digital_sig_seq.add_new((0x0400, 0x0020), "AT", signed_tags)
+
+    ds.add_new((0xFFFA, 0xFFFA), "SQ", pydicom.Sequence([digital_sig_seq]))
+
+    ds.save_as("signed_DICOM/" + ds[0x0008, 0x0018].value + ".dcm", write_like_original=False)
+
+    return ds
 
 def base_RSA_signature(bytes):
     ds = read_file(bytes)
