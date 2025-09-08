@@ -10,15 +10,15 @@ from pydicom.uid import ExplicitVRLittleEndian, generate_uid
 from cryptography.hazmat.primitives import padding, hashes, serialization
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
-from cryptography.hazmat.primitives.asymmetric import rsa
 
 # 1. A content-encryption key is generated at random. Since this is not a production environment, a static 256-bit key is used here.
 # 2. Then, the content-encryption key shall be encrypted for each recipient. Again, it is assumed there is only one recipient.
 #   2.1 Since this is not a production environment, a randomly generated private-public key pair shall be generated for each CMS blob.
-#   2.2 The encryption of the content-encryption key shall be done using the generated public key. This way, only the recipient can decrypt it using its private key.
-# 3. 
+#   2.2 The encryption of the content-encryption key shall be done using the generated public key and RSA. This way, only the recipient can decrypt it using its private key.
+# 3. Both the public key and the corresponding metadata are contained within the self-signed certificate, while the private key is within its own file.
+#   3.1 This key-generation is only done once and is random. 
 
-# Used to encrypt the content
+# Used to encrypt the content - symmetric key
 key = bytes.fromhex('8ef72dd8c7e59683829f1a8a09febc6ee87bdfb300e3c18b90f320f8470c0d8a')
 iv  = bytes.fromhex('3c0dccb453c688c901fc9e343f21acdb')
 
@@ -186,8 +186,7 @@ def base_RSA_signature(bytes):
     return ds
 
 def secure_enveloped_data(bytes):
-    dicom_file = BytesIO(bytes)
-    ds         = pydicom.dcmread(dicom_file)
+    ds = read_file(bytes)
 
     with open("encryption_keys/certificate.pem", "rb") as f:
         cert = x509.load_pem_x509_certificate(f.read(), backend=default_backend())
@@ -384,5 +383,3 @@ def reidentify(bytes):
         return deidentified_ds
     else:
         return deidentified_ds
-
-    

@@ -1,5 +1,5 @@
 from flask import Flask, flash, redirect, render_template, jsonify, Response, request, session, url_for
-import orthanc_clients, orthanc_studies, orthanc_instances, dicom
+import orthanc_clients, orthanc_studies, orthanc_instances, sqlite
 
 app = Flask(__name__)
 app.secret_key = 'b0f1b6f71c2f9f4e6a7da38b1c6b4c2b37c47b7801540b869d6c3fbdc2b490b9'
@@ -16,6 +16,15 @@ def list_patients():
 def patient_info(patient_id):
     try:
         data = orthanc_clients.get_patient_info(patient_id)
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/patients/<patient_id>/add-patient')
+def save_patient(patient_id):
+    try:
+        data = orthanc_clients.get_patient_info(patient_id)
+        sqlite.add_patient(data)
         return jsonify(data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
