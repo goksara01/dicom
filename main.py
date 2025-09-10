@@ -108,7 +108,7 @@ def get_secure(instance_id):
 def get_rsa_signature(instance_id):
     try:
         data = orthanc_instances.create_RSA_digital_signature(instance_id)
-        print(data)
+        #print(data)
         return jsonify({'status': "success"}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500    
@@ -117,7 +117,7 @@ def get_rsa_signature(instance_id):
 def get_creator_rsa_signature(instance_id):
     try:
         data = orthanc_instances.create_creator_RSA_digital_signature(instance_id)
-        print(data)
+        #print(data)
         return jsonify({'status': "success"}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500  
@@ -145,6 +145,10 @@ def home():
         return redirect(url_for('login'))
     
     return render_template("index.html")
+
+@app.route('/patient-portal')
+def patient_portal():
+    return render_template("patients.html")
 
 if __name__ == "__main__":
     app.run(debug=True)

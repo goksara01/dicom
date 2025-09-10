@@ -107,9 +107,9 @@
       <div class="dropdown">
         <a href="/patient-portal">Patients</a>
           <div class="dropdown-content">
-            <a href="/patient-portal">Add Patient</a>
-            <a href="/patient-portal" onclick="viewPatients()">View All</a>
-            <a href="/patient-portal">Save Patient</a>
+            <a href="#">Add Patient</a>
+            <a href="#" onclick="viewPatients()">View All</a>
+            <a href="#">Save Patient</a>
           </div>
       </div>
       <div class="dropdown">
@@ -137,8 +137,21 @@
   </div>
 
   <div class="content">
-    <h1>Welcome to the unified DICOMweb portal</h1>
-    <p>You are now logged in.</p>
+    <p>Here you can view patient-related information.</p>
+    <h2>All Patients</h2>
+    <table id="patient-table" border="1">
+        <thead>
+          <tr> 
+            <th>Name</th>
+            <th>Birthdate</th>
+            <th>Sex</th>
+            <th>Type</th>
+          </tr>   
+        </thead>
+        <tbody>
+
+        </tbody>
+    </table>
   </div>
 
 </body>
