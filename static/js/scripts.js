@@ -47,3 +47,17 @@ function viewPatients(){
         console.error('Error fetching patients:', error)
     })
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const tbody = document.querySelector('#instance-table tbody');
+    
+    tbody.addEventListener('click', (event) => {
+        if (event.target && event.target.matches('.action-btn')) {
+            
+            const instance_id = event.target.dataset.id;
+
+            alert(instance_id)
+            
+        }
+    });
+});

@@ -95,7 +95,7 @@
     }
   </style>
 </head>
-<script src="../static/js/scripts.js" defer></script>
+
 <body>
 
   <div class="top-bar">
@@ -156,6 +156,8 @@
       </table>
   </div>
 
+<script src="../static/js/scripts.js" defer></script>
+  
 </body>
 
 <script>
@@ -168,8 +170,8 @@
         data.forEach(instance => {
           const row = document.createElement('tr');
           row.innerHTML = `<td>${instance.id}</td><td>${instance.index_in_series}</td>
-          <td>${instance.creation_date}</td><td>${instance.creation_time}</td>
-          <td>${instance.series_id}</td><td><button class="action-btn" data-id="${instance.id}">Deidentify</button></td>`;
+          <td>${instance.creation_date}</td><td>${instance.creation_time}</td><td>${instance.series_id}</td>
+          <td><button class="action-btn" data-id="${instance.id}">Deidentify</button></td>`;
           tbody.appendChild(row);
         });
       })
