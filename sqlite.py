@@ -1,3 +1,4 @@
+import datetime
 import sqlite3
 
 def add_patient(patient):
@@ -97,8 +98,21 @@ def load_instance(instance):
     ''')
 
     cursor.execute("INSERT INTO instances VALUES(?, ?, ?, ?, ?)",
-                   (instance['ID'], instance['IndexInSeries'], instance['MainDicomTags']['InstanceCreationDate'], 
+                (instance['ID'], instance['IndexInSeries'], instance['MainDicomTags']['InstanceCreationDate'], 
                     instance['MainDicomTags']['InstanceCreationTime'], instance['ParentSeries']))
 
     conn.commit()
     conn.close()    
+
+def get_instances_from_db():
+    conn = sqlite3.connect('dicom.db')
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id, index_in_series, creation_date, creation_time, series_id FROM instances")
+    rows = cursor.fetchall()
+    conn.close()
+
+    instances = [{"id": row[0], "index_in_series": row[1], "creation_date": datetime.datetime.strptime(row[2], "%Y%m%d").strftime("%Y-%m-%d"), 
+                "creation_time": row[3], "series_id": row[4]} for row in rows]
+                
+    return instances

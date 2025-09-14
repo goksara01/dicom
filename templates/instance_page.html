@@ -107,15 +107,17 @@
       <div class="dropdown">
         <a href="/patient-portal">Patients</a>
           <div class="dropdown-content">
-            <a href="/patient-portal">Add Patient</a>
-            <a href="/patient-portal" onclick="viewPatients()">View All</a>
-            <a href="/patient-portal">Save Patient</a>
+            <a href="#">Add Patient</a>
+            <a href="#" onclick="viewPatients()">View All</a>
+            <a href="#">Dedientify Patient</a>
+            <a href="#">Save Patient</a>
           </div>
       </div>
       <div class="dropdown">
         <a href="#">Studies</a>
           <div class="dropdown-content">
             <a href="#">View All</a>
+            <a href="#">Deidentify Study</a>
             <a href="#">Search</a>
           </div>
       </div>
@@ -123,11 +125,12 @@
         <a href="#">Series</a>
           <div class="dropdown-content">
             <a href="#">View All</a>
+            <a href="#">Deidentify Serie</a>
             <a href="#">Search</a>
           </div>
       </div>
       <div class="dropdown">
-        <a href="/instance-portal">Instances</a>
+        <a href="/instance-portal" >Instances</a>
           <div class="dropdown-content">
             <a href="/instance-portal">View All</a>
             <a href="/instance-portal">Deidentify Instance</a>
@@ -138,9 +141,39 @@
   </div>
 
   <div class="content">
-    <h1>Welcome to the unified DICOMweb portal</h1>
-    <p>You are now logged in.</p>
+    <p>Here you can view instance-related information.</p>
+    <table id="instance-table" border="1">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Index</th>
+            <th>Creation Date</th>
+            <th>Creation Time</th>
+            <th>Series ID</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
   </div>
 
 </body>
+
+<script>
+    fetch('/instances-db')
+      .then(response => response.json())
+      .then(data => {
+        const tbody = document.querySelector('#instance-table tbody');
+        tbody.innerHTML = '';
+        
+        data.forEach(instance => {
+          const row = document.createElement('tr');
+          row.innerHTML = `<td>${instance.id}</td><td>${instance.index_in_series}</td>
+          <td>${instance.creation_date}</td><td>${instance.creation_time}</td>
+          <td>${instance.series_id}</td><td><button class="action-btn" data-id="${instance.id}">Deidentify</button></td>`;
+          tbody.appendChild(row);
+        });
+      })
+      .catch(err => console.error('Error loading instances from the database:', err));
+</script>
+
 </html>

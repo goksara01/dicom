@@ -1,17 +1,17 @@
 // scripts.js
 
 function viewPatients(){
-    fetch(`http://localhost:5000/patients`, {
+    fetch(`http://127.0.0.1:5000/patients`, {
         method: 'GET'
-    })
+    })  
     .then(response => response.json())
     .then(data => {
         const table = document.querySelector("#patient-table tbody")
-
+        console.log(data)
         table.innerHTML = ""
 
         data.forEach(element => {
-            fetch(`http://localhost:5000/patients/${element}`, {
+            fetch(`http://127.0.0.1:5000/patients/${element}`, {
                 method: 'GET'
             })
             .then(response1 => response1.json())

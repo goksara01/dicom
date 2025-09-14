@@ -89,6 +89,11 @@ def list_instances():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/instances-db')
+def list_instances_from_db():
+    data = sqlite.get_instances_from_db()
+    return jsonify(data)
+
 @app.route('/instances/<instance_id>')
 def get_instance(instance_id):
     try:
@@ -194,7 +199,11 @@ def home():
 
 @app.route('/patient-portal')
 def patient_portal():
-    return render_template("patients.html")
+    return render_template("patient.html")
+
+@app.route('/instance-portal')
+def instance_portal():
+    return render_template("instance_page.html")
 
 if __name__ == "__main__":
     app.run(debug=True)
