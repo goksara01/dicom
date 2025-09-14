@@ -1,5 +1,5 @@
 from flask import Flask, flash, redirect, render_template, jsonify, Response, request, session, url_for
-import orthanc_clients, orthanc_studies, orthanc_instances, sqlite
+import orthanc_clients, orthanc_studies, orthanc_series, orthanc_instances, sqlite
 
 app = Flask(__name__)
 app.secret_key = 'b0f1b6f71c2f9f4e6a7da38b1c6b4c2b37c47b7801540b869d6c3fbdc2b490b9'
@@ -45,6 +45,42 @@ def get_study(study_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/studies/load-studies')
+def load_studies():
+    try:
+        data = orthanc_studies.get_all_studies()
+        for study in data:
+            sqlite.load_study(get_study(study).get_json())
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/series')
+def list_series():
+    try:
+        data = orthanc_series.get_all_series()
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/series/<series_id>')
+def get_series(series_id):
+    try:
+        data = orthanc_series.get_series_info(series_id)
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/series/load-series')
+def load_series():
+    try:
+        data = orthanc_series.get_all_series()
+        for series in data:
+            sqlite.load_series(get_series(series).get_json())
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500    
+
 @app.route('/instances')
 def list_instances():
     try:
@@ -60,6 +96,16 @@ def get_instance(instance_id):
         return jsonify(data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/instances/load-instances')
+def load_instances():
+    try:
+        data = orthanc_instances.get_all_instances()
+        for instance in data:
+            sqlite.load_instance(get_instance(instance).get_json())
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500    
 
 @app.route('/instances/<instance_id>/file')
 def get_instance_file(instance_id):

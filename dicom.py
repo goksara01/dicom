@@ -185,6 +185,7 @@ def base_RSA_signature(bytes):
 
     return ds
 
+# Cryptographic Message Syntax - CMS
 def secure_enveloped_data(bytes):
     ds = read_file(bytes)
 
