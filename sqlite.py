@@ -116,3 +116,26 @@ def get_instances_from_db():
                 "creation_time": row[3], "series_id": row[4]} for row in rows]
                 
     return instances
+
+def save_deidentified_instance_db(bytes, instance_id):
+    conn = sqlite3.connect("dicom.db")
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS deidentified (
+                   id TEXT PRIMARY KEY,
+                   data BLOB NOT NULL,
+                   upload_date TEXT,
+                   type TEXT NOT NULL,
+
+                   FOREIGN KEY (id) REFERENCES instances(id)
+                        ON DELETE CASCADE
+                        ON UPDATE CASCADE
+            )
+    ''')
+
+    cursor.execute("INSERT INTO deidentified VALUES(?, ?, ?, ?)", 
+                   (instance_id, bytes, datetime.datetime.now().isoformat(), 'instance'))
+
+    conn.commit()
+    conn.close()

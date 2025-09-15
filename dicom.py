@@ -1,5 +1,5 @@
 import asn1crypto
-import pydicom
+import pydicom, sqlite
 from io import BytesIO
 from cryptography import x509
 from pydicom.dataset import Dataset
@@ -17,6 +17,10 @@ from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
 #   2.2 The encryption of the content-encryption key shall be done using the generated public key and RSA. This way, only the recipient can decrypt it using its private key.
 # 3. Both the public key and the corresponding metadata are contained within the self-signed certificate, while the private key is within its own file.
 #   3.1 This key-generation is only done once and is random. 
+
+# A de-identifier conforming to this security Profile may use
+# either AES or Triple-DES for content-encryption. The AES key length may be any length allowed by the RFCs. The Triple-DES
+# key length is 168 bits as defined by [ANSI X9.52].
 
 # Used to encrypt the content - symmetric key
 key = bytes.fromhex('8ef72dd8c7e59683829f1a8a09febc6ee87bdfb300e3c18b90f320f8470c0d8a')
@@ -260,7 +264,7 @@ def secure_enveloped_data(bytes):
 
     return cms_obj
 
-def deidentify(bytes):
+def deidentify(bytes, instance_id):
     dicom_file = BytesIO(bytes)
     original_ds = pydicom.dcmread(dicom_file)
 
@@ -285,6 +289,7 @@ def deidentify(bytes):
     series_time          = original_ds[0x0008, 0x0031].value
     acquisition_time     = original_ds[0x0008, 0x0032].value
     content_time         = original_ds[0x0008, 0x0033].value
+    SOP_instance_UID     = original_ds[0x0008, 0x0018].value
 
     original_ds.PatientSex          = ""
     original_ds.PatientName         = "John^Doe"
@@ -292,6 +297,7 @@ def deidentify(bytes):
     original_ds.PatientBirthDate    = ""
     original_ds.StudyTime           = ""
     original_ds.ContentTime         = ""
+    original_ds.SOPInstanceUID      = generate_uid() # TODO: think of a better dummy UID value
     del original_ds.SeriesTime
     del original_ds.PatientAge
     del original_ds.StationName
@@ -320,6 +326,7 @@ def deidentify(bytes):
     encrypted_attrs_ds.SeriesTime       = series_time
     encrypted_attrs_ds.AcquisitionTime  = acquisition_time
     encrypted_attrs_ds.ContentTime      = content_time
+    encrypted_attrs_ds.SOPInstanceUID   = SOP_instance_UID
     encrypted_attrs_ds.is_little_endian = True
     encrypted_attrs_ds.is_implicit_VR = False
     encrypted_attrs_ds.save_as(buffer)
@@ -348,16 +355,20 @@ def deidentify(bytes):
     item1.add_new((0x0400, 0x0510), 'UI', ExplicitVRLittleEndian)
     item1.add_new((0x0400, 0x0520), 'OB', ciphertext)
 
-    original_ds.add_new((0x0400, 0x0500), 'SQ', [item0, item1])
+    original_ds.add_new((0x0400, 0x0500), 'SQ', [item0, item1]) # encrypted attributes sequence
     
     original_ds.file_meta.MediaStorageSOPClassUID    = original_ds.SOPClassUID if "SOPClassUID" in original_ds else generate_uid()
     original_ds.file_meta.MediaStorageSOPInstanceUID = original_ds.SOPInstanceUID if "SOPInstanceUID" in original_ds else generate_uid()
     original_ds.file_meta.TransferSyntaxUID          = ExplicitVRLittleEndian
-    original_ds.file_meta.ImplementationClassUID = generate_uid()
+    original_ds.file_meta.ImplementationClassUID     = generate_uid()
     original_ds.is_little_endian = True
     original_ds.is_implicit_VR   = False
-        
-    original_ds.save_as("dicom_files/deidentified_file.dcm", write_like_original=False)
+    
+    blob = DicomBytesIO()
+    original_ds.save_as(blob)
+    deidentified_bytes = blob.getvalue()
+
+    sqlite.save_deidentified_instance_db(deidentified_bytes, instance_id)
 
     return original_ds 
 

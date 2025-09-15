@@ -116,6 +116,7 @@ def load_instances():
 def get_instance_file(instance_id):
     try:
         data = orthanc_instances.get_instance_file(instance_id)
+        print(data)
         return jsonify(str(data))
     except Exception as e:
         return jsonify({'error': str(e)}), 500

@@ -52,12 +52,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const tbody = document.querySelector('#instance-table tbody');
     
     tbody.addEventListener('click', (event) => {
-        if (event.target && event.target.matches('.action-btn')) {
+        if (event.target && event.target.matches('.action-select')) {
             
             const instance_id = event.target.dataset.id;
+            const action      = event.target.value;
 
-            alert(instance_id)
+            if (!action) return;
+
+            fetch(`http://127.0.0.1:5000/instances/${instance_id}/${action}`, {method: 'GET'})
+            .then(response => response.json())
+            .then(data => {  })
+            .catch(error => { console.error('Action failed:', error) })
             
+            event.target.value = "";
         }
     });
 });

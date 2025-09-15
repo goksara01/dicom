@@ -65,7 +65,7 @@ def create_deidentified_instance(instance_id):
     auth = (ORTHANC_USERNAME, ORTHANC_PASSWORD)
     response = requests.get(url, auth=auth)
     response.raise_for_status()
-    return dicom.deidentify(response.content)
+    return dicom.deidentify(response.content, instance_id)
 
 def create_reidentified_instance(instance_id):
     url = f"{ORTHANC_URL}/instances/{instance_id}/file"
