@@ -83,7 +83,7 @@ def create_secure_DICOM_enveloped(instance_id):
     auth = (ORTHANC_USERNAME, ORTHANC_PASSWORD)
     response = requests.get(url, auth=auth)
     response.raise_for_status()
-    return dicom.secure_enveloped_data(response.content)
+    return dicom.secure_enveloped_data(response.content, instance_id)
 
 def create_RSA_digital_signature(instance_id):
     url = f"{ORTHANC_URL}/instances/{instance_id}/file"
@@ -92,7 +92,7 @@ def create_RSA_digital_signature(instance_id):
     auth = (ORTHANC_USERNAME, ORTHANC_PASSWORD)
     response = requests.get(url, auth=auth)
     response.raise_for_status()
-    return dicom.base_RSA_signature(response.content)
+    return dicom.base_RSA_signature(response.content, instance_id)
 
 def create_creator_RSA_digital_signature(instance_id):
     url = f"{ORTHANC_URL}/instances/{instance_id}/file"
@@ -101,4 +101,4 @@ def create_creator_RSA_digital_signature(instance_id):
     auth = (ORTHANC_USERNAME, ORTHANC_PASSWORD)
     response = requests.get(url, auth=auth)
     response.raise_for_status()
-    return dicom.creator_RSA_signature(response.content)
+    return dicom.creator_RSA_signature(response.content, instance_id)

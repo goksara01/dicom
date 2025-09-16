@@ -93,6 +93,91 @@
     .content {
       padding: 20px;
     }
+
+    #patient-table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #2b2b2b;
+      color: #f0f0f0;
+      font-family: Arial, sans-serif;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    #patient-table th, 
+    #patient-table td {
+      padding: 12px 16px;
+      border: 1px solid #444;
+      text-align: left;
+    }
+
+    #patient-table th {
+      background-color: #333;
+      color: #ffcc00;
+      font-weight: bold;
+    }
+
+    #patient-table tr:nth-child(even) {
+      background-color: #3a3a3a;
+    }
+
+    #patient-table th {
+      position: sticky;
+      top: 0;
+      background-color: #333;
+      color: #ffcc00;
+      font-weight: bold;
+      z-index: 2;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    }    
+
+    #patient-table tr:nth-child(odd) {
+      background-color: #2b2b2b;
+    }
+
+    #patient-table tr:hover {
+      background-color: #444;
+      transition: background 0.3s ease;
+    }
+
+    #patient-table td a {
+      color: #ffcc00;
+      text-decoration: none;
+    }
+
+    #patient-table td a:hover {
+      color: #ffffff;
+      text-decoration: underline;
+    }
+
+    #patient-table .action-select {
+      background-color: #333;
+      color: #f0f0f0;              
+      border: 1px solid #555;      
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-family: Arial, sans-serif;
+      font-size: 0.9em;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    #patient-table .action-select:hover {
+      background-color: #444;
+      border-color: #666;
+    }
+
+    #patient-table .action-select:focus {
+      outline: none;
+      border-color: #ffcc00;      
+      box-shadow: 0 0 4px #ffcc00;
+    }
+
+    #patient-table .action-select option {
+      background-color: #2b2b2b;
+      color: #f0f0f0;
+    }        
   </style>
 </head>
 <script src="../static/js/scripts.js" defer></script>

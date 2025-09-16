@@ -1,6 +1,7 @@
 import asn1crypto
 import pydicom, sqlite
 from io import BytesIO
+from constants import *
 from cryptography import x509
 from pydicom.dataset import Dataset
 from pydicom.filebase import DicomBytesIO
@@ -60,7 +61,7 @@ def decrypt_aes256(cipher_bytes):
 
     return plaintext
 
-def creator_RSA_signature(bytes):
+def creator_RSA_signature(bytes, instance_id):
     ds = read_file(bytes)
     signed_ds, buffer  = Dataset(), DicomBytesIO()
 
@@ -129,7 +130,7 @@ def creator_RSA_signature(bytes):
         cert     = x509.load_pem_x509_certificate(f.read(), backend=default_backend())
         cert_der = cert.public_bytes(serialization.Encoding.DER)
 
-    signed_tags = [pydicom.tag.Tag(0x00100010), pydicom.tag.Tag(0x00100020), pydicom.tag.Tag(0x00101010)]
+    signed_tags = [elem.tag for elem in signed_ds]
 
     digital_sig_seq = Dataset()
     digital_sig_seq.add_new((0x0400, 0x0015), "CS", "SHA256")
@@ -142,9 +143,15 @@ def creator_RSA_signature(bytes):
 
     ds.save_as("signed_DICOM/" + ds[0x0008, 0x0018].value + ".dcm", write_like_original=False)
 
+    blob = DicomBytesIO()
+    ds.save_as(blob)
+    signed_bytes = blob.getvalue()
+
+    sqlite.save_signed_instance_db(signed_bytes, instance_id, 'creator')
+
     return ds
 
-def base_RSA_signature(bytes):
+def base_RSA_signature(bytes, instance_id):
     ds = read_file(bytes)
     signed_ds, buffer  = Dataset(), DicomBytesIO()
 
@@ -187,10 +194,16 @@ def base_RSA_signature(bytes):
 
     ds.save_as("signed_DICOM/" + ds[0x0008, 0x0018].value + ".dcm", write_like_original=False)
 
+    blob = DicomBytesIO()
+    ds.save_as(blob)
+    signed_bytes = blob.getvalue()
+
+    sqlite.save_signed_instance_db(signed_bytes, instance_id, 'base')
+
     return ds
 
 # Cryptographic Message Syntax - CMS
-def secure_enveloped_data(bytes):
+def secure_enveloped_data(bytes, instance_id):
     ds = read_file(bytes)
 
     with open("encryption_keys/certificate.pem", "rb") as f:
@@ -262,34 +275,38 @@ def secure_enveloped_data(bytes):
     with open("secure_DICOM/secure_output.p7m", "wb") as f:
         f.write(cms_obj.dump())    
 
+    cms_bytes = cms_obj.dump()
+
+    sqlite.save_secured_instance_db(cms_bytes, instance_id)
+
     return cms_obj
 
 def deidentify(bytes, instance_id):
     dicom_file = BytesIO(bytes)
     original_ds = pydicom.dcmread(dicom_file)
 
-    patient_name         = original_ds[0x0010, 0x0010].value
-    patient_id           = original_ds[0x0010, 0x0020].value
-    patient_age          = original_ds[0x0010, 0x1010].value
-    patient_birthday     = original_ds[0x0010, 0x0030].value
-    patient_weight       = original_ds[0x0010, 0x1030].value
-    patient_sex          = original_ds[0x0010, 0x0040].value
+    patient_name         = original_ds[PatientName].value
+    patient_id           = original_ds[PatientID].value
+    patient_age          = original_ds[PatientAge].value
+    patient_birthday     = original_ds[PatientBirthDate].value
+    patient_weight       = original_ds[PatientWeight].value
+    patient_sex          = original_ds[PatientSex].value
     study_instance_UID   = original_ds[0x0020, 0x000D].value
     series_instance_UID  = original_ds[0x0020, 0x000E].value
-    institution_address  = original_ds[0x0008, 0x0081].value
-    institution_name     = original_ds[0x0008, 0x0080].value
-    institution_dep_name = original_ds[0x0008, 0x1040].value
-    station_name         = original_ds[0x0008, 0x1010].value
-    study_description    = original_ds[0x0008, 0x1030].value
-    series_description   = original_ds[0x0008, 0x103E].value
-    physician_name       = original_ds[0x0008, 0x1050].value
-    inst_creation_date   = original_ds[0x0008, 0x0012].value
-    inst_creation_time   = original_ds[0x0008, 0x0013].value
-    study_time           = original_ds[0x0008, 0x0030].value
-    series_time          = original_ds[0x0008, 0x0031].value
-    acquisition_time     = original_ds[0x0008, 0x0032].value
-    content_time         = original_ds[0x0008, 0x0033].value
-    SOP_instance_UID     = original_ds[0x0008, 0x0018].value
+    institution_address  = original_ds[InstitutionAddress].value
+    institution_name     = original_ds[InstitutionName].value
+    institution_dep_name = original_ds[InstitutionalDepartmentName].value
+    station_name         = original_ds[StationName].value
+    study_description    = original_ds[StudyDescription].value
+    series_description   = original_ds[SeriesDescription].value
+    physician_name       = original_ds[PerformingPhysicianName].value
+    inst_creation_date   = original_ds[InstanceCreationDate].value
+    inst_creation_time   = original_ds[InstanceCreationTime].value
+    study_time           = original_ds[StudyTime].value
+    series_time          = original_ds[SeriesTime].value
+    acquisition_time     = original_ds[AcquisitionTime].value
+    content_time         = original_ds[ContentTime].value
+    SOP_instance_UID     = original_ds[SOPInstanceUID].value
 
     original_ds.PatientSex          = ""
     original_ds.PatientName         = "John^Doe"

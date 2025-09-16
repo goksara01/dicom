@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             fetch(`http://127.0.0.1:5000/instances/${instance_id}/${action}`, {method: 'GET'})
             .then(response => response.json())
-            .then(data => {  })
+            .then(data => { alert(`${action} completed successfully!`) })
             .catch(error => { console.error('Action failed:', error) })
             
             event.target.value = "";
