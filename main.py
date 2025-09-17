@@ -125,6 +125,7 @@ def get_instance_file(instance_id):
 def get_deidentified_file(instance_id):
     try:
         data = orthanc_instances.create_deidentified_instance(instance_id)
+        print(data)
         return jsonify(str(data))
     except Exception as e:
         return jsonify({'error': str(e)}), 500

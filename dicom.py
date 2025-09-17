@@ -185,7 +185,7 @@ def base_RSA_signature(bytes, instance_id):
 
     digital_sig_seq = Dataset()
     digital_sig_seq.add_new((0x0400, 0x0015), "CS", "SHA256")
-    digital_sig_seq.add_new((0x0400, 0x0110), "CS", "X509_1993_SIG")
+    digital_sig_seq.add_new((0x0400, 0x0110), "CS", "X509_1993_SIG") # Certificate Type 
     digital_sig_seq.add_new((0x0400, 0x0115), "OB", cert_der)
     digital_sig_seq.add_new((0x0400, 0x0120), "OB", signature)
     digital_sig_seq.add_new((0x0400, 0x0020), "AT", signed_tags)
